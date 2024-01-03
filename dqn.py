@@ -18,7 +18,7 @@ class Field:
         self.body = np.zeros(shape=(self.height, self.width))
         self.collisions = 0
 
-    def update_field(self, buoys, boats):
+    def update_field(self, buoys, boat):
         try:
             # Clear the field:
             self.body = np.zeros(shape=(self.height, self.width))
@@ -52,66 +52,71 @@ class Field:
             for buoy in buoys:
                 self.body[buoy.y:min(buoy.y+buoy.height,self.height),buoy.x:min(buoy.x+buoy.width, self.width)] = buoy.symbol
 
+            #print('things are happening')
+            #print(boat.x, boat.y)
             # Put the player on the field:
-            for boat in boats:
-                #check for collision of front tip:
-                if (self.body[boat.y, boat.x] != 0):
-                    self.collisions += 1
-                #place the front tip of the boat:
-                self.body[boat.y, boat.x] = boat.tipsymbol
+            #for boat in boats:
+            #check for collision of front tip:
+            if (self.body[int(boat.y), int(boat.x)] != 0):
+                self.collisions += 1
+            #place the front tip of the boat:
+            #print('a')
+            print(boat.bearing)
+            self.body[int(boat.y), int(boat.x)] = boat.tipsymbol
+            
+            #paint rest of boat:
+                #to further refine later: project two lines at angle to guide tip shape, and don't paint the pixel if it's outside that boundary
+                #this will allow the first step (tapered width) to be skipped also
+            if (boat.bearing < 10 or boat.bearing > 350):
+                #do custom boat vertical to override bug
+                for n in range(int(-boat.width/2), int(boat.width/2)):
+                    for y in range(1, boat.length):
+                        if (self.body[boat.y+y, n + boat.x] != 0): 
+                            self.collisions += 1
+                        self.body[boat.y+y, n+boat.x] = boat.symbol
 
-                #paint rest of boat:
-                    #to further refine later: project two lines at angle to guide tip shape, and don't paint the pixel if it's outside that boundary
-                    #this will allow the first step (tapered width) to be skipped also
-                if (boat.bearing < 10 or boat.bearing > 350):
-                    #do custom boat vertical to override bug
-                    for n in range(int(-boat.width/2), int(boat.width/2)):
-                        for y in range(1, boat.length):
-                            if (self.body[boat.y+y, n + boat.x] != 0): 
-                                self.collisions += 1
-                            self.body[boat.y+y, n+boat.x] = boat.symbol
+            elif (boat.bearing > 170 and boat.bearing < 190):
+                #do custom vertical boat to override bug
+                for n in range(int(-boat.width/2), int(boat.width/2)):
+                    for y in range(1, boat.length):
+                        if (self.body[boat.y-y, n + boat.x] != 0): 
+                            self.collisions += 1
+                        self.body[boat.y-y, n+boat.x] = boat.symbol
 
-                elif (boat.bearing > 170 and boat.bearing < 190):
-                    #do custom vertical boat to override bug
-                    for n in range(int(-boat.width/2), int(boat.width/2)):
-                        for y in range(1, boat.length):
-                            if (self.body[boat.y-y, n + boat.x] != 0): 
-                                self.collisions += 1
-                            self.body[boat.y-y, n+boat.x] = boat.symbol
-
-                elif (boat.bearing > 180):
-                    m = 1/(-sind(boat.bearing) / cosd(boat.bearing))
-                    for n in range(int(-boat.width/2), int(boat.width/2)):
-                        if (n >= boat.width-1 and n <= boat.width+1):
-                            x=1
-                            y=m*x + n
+            elif (boat.bearing > 180):
+                #print('bbbb')
+                m = 1/(-sind(boat.bearing) / cosd(boat.bearing))
+                for n in range(int(-boat.width/2), int(boat.width/2)):
+                    if (n >= boat.width-1 and n <= boat.width+1):
+                        x=1
+                        y=m*x + n
+                        if (self.body[int(y)+boat.y,x+boat.x] == 0): 
+                            self.body[int(y)+boat.y,x+boat.x] = boat.symbol
+                        else: self.collisions += 1
+                    for x in range (2,boat.length):
+                        y=m*x + n
+                        if (np.sqrt(int(y)**2 + x**2) <= (boat.length)):
                             if (self.body[int(y)+boat.y,x+boat.x] == 0): 
                                 self.body[int(y)+boat.y,x+boat.x] = boat.symbol
                             else: self.collisions += 1
-                        for x in range (2,boat.length):
-                            y=m*x + n
-                            if (np.sqrt(int(y)**2 + x**2) <= (boat.length)):
-                                if (self.body[int(y)+boat.y,x+boat.x] == 0): 
-                                    self.body[int(y)+boat.y,x+boat.x] = boat.symbol
-                                else: self.collisions += 1
-                else:
-                    m = 1/(sind(boat.bearing) / cosd(boat.bearing))
-                    for n in range(int(-boat.width/2), int(boat.width/2)):
-                        if (n >= boat.width-1 and n <= boat.width+1):
-                            x=1
-                            y=m*x + n
+            else:
+                m = 1/(sind(boat.bearing) / cosd(boat.bearing))
+                for n in range(int(-boat.width/2), int(boat.width/2)):
+                    if (n >= boat.width-1 and n <= boat.width+1):
+                        x=1
+                        y=m*x + n
+                        if (self.body[int(y)+boat.y,-x+boat.x] != 0): 
+                            self.collisions += 1
+                        self.body[int(y)+boat.y,-x+boat.x] = boat.symbol
+                    for x in range (2,boat.length):
+                        y=m*x + n
+                        if (np.sqrt(int(y)**2 + (x)**2) <= (boat.length)):
                             if (self.body[int(y)+boat.y,-x+boat.x] != 0): 
                                 self.collisions += 1
                             self.body[int(y)+boat.y,-x+boat.x] = boat.symbol
-                        for x in range (2,boat.length):
-                            y=m*x + n
-                            if (np.sqrt(int(y)**2 + (x)**2) <= (boat.length)):
-                                if (self.body[int(y)+boat.y,-x+boat.x] != 0): 
-                                    self.collisions += 1
-                                self.body[int(y)+boat.y,-x+boat.x] = boat.symbol
+            #print("boat flag")
 
-
-                if (False):
+            if (False):
                     if ((boat.bearing > 90) & (boat.bearing < 270)):
                         print('a')
                         #facing in positive x direction, so paint boat in negative x direction
@@ -186,7 +191,7 @@ class Boat:
         if self.speed <= -self.SPEEDMAX: self.speed = -self.SPEEDMAX
 
         #update movement log
-        np.append(self.movementLog, [[self.y,self.x,self.bearing]], axis=0)
+        self.movementLog = np.append(self.movementLog, [[self.y,self.x,self.bearing]], axis=0)
         print(self.movementLog)
 
 ######################################################################################
@@ -208,6 +213,7 @@ class Environment:
     
     MOVE_PLAYER_EVERY = 1     # Every how many frames the player moves.
     frames_counter    = 0
+    vessel = Boat
 
     def __init__(self):
         # Colors:
@@ -229,6 +235,7 @@ class Environment:
         self.val2color  = {0:self.OCEAN_COLOR, 1:self.OOBCOLOR, 2:self.YELLOW, 3:self.BLUE, 4:self.GRAY, 5:self.RED, 6:self.GREEN, 
                            7:self.BLUE, 8:self.ORANGE, 9:self.MAGENTA, 10:self.YELLOW, 11:self.WHITE, 12:self.BLACK, 
                            13:self.BLUE, 20:self.BOAT_COLOR, 21:self.BOATTIP_COLOR}
+        self.vessel = Boat(348, 735, 200)
     def reset(self):
         self.score          = 0
         self.frames_counter = 0
@@ -290,10 +297,10 @@ class Environment:
                     colorpick_blue, colorpick_orange, colorpick_magenta, colorpick_yellow,
                     sensorDep_zebra, shoreDep_black, search_rescue]
 
-        self.vessel = Boat(348, 735, 200)
         #self.boats_list = [self.vessel]
+        self.vessel = Boat(348, 735, 200)
 
-        self.field.update_field(self.buoys_list, [self.vessel])
+        self.field.update_field(self.buoys_list, self.vessel)
         
         observation = self.field.body
         return observation
@@ -319,8 +326,16 @@ class Environment:
 
         self.vessel.frame_update(angle_action, speed_action)
 
+        #print('eee')
+        #plt.imshow(self.field.body, interpolation='nearest')
+        #plt.show()
+
         # Update the field :
-        self.field.update_field(self.buoys_list, [self.vessel])
+        self.field.update_field(self.buoys_list, self.vessel)
+
+        #print('f')
+        #plt.imshow(self.field.body, interpolation='nearest')
+        #plt.show()
 
         if self.score >= winning_score:
             self.game_over = True
@@ -337,10 +352,15 @@ class Environment:
 
         
         # Return New Observation , reward
-        return self.field.body, reward
+        #return self.field.body, reward
     
 
     def render(self, WINDOW = None, human=False):
+
+        #print('a')
+        #plt.imshow(self.field.body, interpolation='nearest')
+        #plt.show()
+
         if human:
             ################ Check Actions #####################
             action_speed = 0
@@ -359,10 +379,14 @@ class Environment:
                     if event.key == pygame.K_q:
                         self.game_over = True
             ################## Step ############################            
-            _,reward = self.step(action_speed, action_direction)
+        self.step(action_speed, action_direction)
+
+        #print('b')
+        #plt.imshow(self.field.body, interpolation='nearest')
+        #plt.show()
+
         ################ Draw Environment ###################
         WINDOW.fill(self.WHITE)
-        self.field.update_field(self.buoys_list, [self.vessel])
         for r in range(self.field.body.shape[0]):
             for c in range(self.field.body.shape[1]):
                 pygame.draw.rect(WINDOW,
@@ -371,6 +395,10 @@ class Environment:
 
         self.print_text(WINDOW = WINDOW, text_cords = (self.WINDOW_WIDTH // 2, int(self.WINDOW_HEIGHT*0.1)),
                        text = str(self.score), color = self.RED, center = True)
+        
+        #print('c')
+        #plt.imshow(self.field.body, interpolation='nearest')
+        #plt.show()
         
         pygame.display.update()
 ####################################################################################
@@ -437,7 +465,7 @@ if (debug_nogame):
 
     vessel = Boat(348, 735, 200)
     boats_list = [vessel]
-
+#####################change these
     a.update_field(buoys_list, boats_list)
     print("collisions = %d", a.collisions)
 
@@ -460,17 +488,15 @@ else:
     framecounter = 0
 
     # Repeaat the game untill the player win (got a score of winning_score) or quits the game.
-    while not win:
-        score_increased = False
-        game_over       = False
-        _ = env.reset()
-        pygame.display.set_caption("Game")
-        while not game_over:
-                clock.tick(27)
-                framecounter += 1
-                env.render(WINDOW = WINDOW, human=True)
-                game_over = env.game_over
-                if framecounter >= 200: game_over = True
+    game_over       = False
+    _ = env.reset()
+    pygame.display.set_caption("Game")
+    while not game_over:
+            clock.tick(27)
+            framecounter += 1
+            env.render(WINDOW = WINDOW, human=True)
+            game_over = env.game_over
+            if framecounter >= 200: game_over = True
 
     #####################################################
     WINDOW.fill(env.WHITE)
@@ -478,11 +504,11 @@ else:
         win = True
         env.print_text(WINDOW = WINDOW, text_cords = (env.WINDOW_WIDTH // 2, env.WINDOW_HEIGHT// 2),
                         text = f"You Win - Score : {env.score}", color = env.RED, center = True)
-        np.savetxt("movements.txt", env.boats_list[0].movementLog , fmt="%d")
+        np.savetxt("movements.txt", env.vessel.movementLog , fmt="%f")
     else:
         env.print_text(WINDOW = WINDOW, text_cords = (env.WINDOW_WIDTH // 2, env.WINDOW_HEIGHT// 2),
                         text = f"Game Over - Score : {env.score}", color = env.RED, center = True)
-        np.savetxt("movements.txt", env.boats_list[0].movementLog , fmt="%d")
+        np.savetxt("movements.txt", env.vessel.movementLog , fmt="%f")
 
     time.sleep(5)
     pygame.display.update()
