@@ -18,52 +18,50 @@ class Field:
         self.body = np.zeros(shape=(self.height, self.width))
         self.collisions = 0
 
+    def store_background(self):
+        self.template = np.zeros(shape=(self.height, self.width))
+        # Mark out of bounds range:
+        for x in range(0,999):
+            for y in range(0, 866):
+                if ((x<290) & (0.055866*x -y > 6.2)):
+                    self.template[y,x] = 1
+                elif ((x>=290) & (x<428) & (0.261*x -y > 65.65)):
+                    self.template[y,x] = 1
+                elif ((x>=428) & (x<576) & (0.3514*x -y > 104.38)):
+                    self.template[y,x] = 1
+                elif ((x>=576) & (x<737) & (0.3913*x -y > 127.4)):
+                    self.template[y,x] = 1
+                elif ((x>=737) & (x < 745) & (19.5*x -y > 14210)):
+                    self.template[y,x] = 1
+                elif ((x>=745) & (0.7953*x -y > 275)):
+                    self.template[y,x] = 1
+
+                if ((x>=893) & (3.27*x+y > 3789.3)):
+                    self.template[y,x] = 1
+                elif (y-0.299*x > 599):
+                    self.template[y,x] = 1
+
+                if ((x<111) & (y+5.4*x < 599)):
+                    self.template[y,x] = 1
+
     def update_field(self, buoys, boat):
         try:
             # Clear the field:
-            self.body = np.zeros(shape=(self.height, self.width))
+            self.body = np.copy(self.template)
             self.collisions = 0
-
-            # Mark out of bounds range:
-            for x in range(0,999):
-                for y in range(0, 866):
-                    if ((x<290) & (0.055866*x -y > 6.2)):
-                        self.body[y,x] = 1
-                    elif ((x>=290) & (x<428) & (0.261*x -y > 65.65)):
-                        self.body[y,x] = 1
-                    elif ((x>=428) & (x<576) & (0.3514*x -y > 104.38)):
-                        self.body[y,x] = 1
-                    elif ((x>=576) & (x<737) & (0.3913*x -y > 127.4)):
-                        self.body[y,x] = 1
-                    elif ((x>=737) & (x < 745) & (19.5*x -y > 14210)):
-                        self.body[y,x] = 1
-                    elif ((x>=745) & (0.7953*x -y > 275)):
-                        self.body[y,x] = 1
-
-                    if ((x>=893) & (3.27*x+y > 3789.3)):
-                        self.body[y,x] = 1
-                    elif (y-0.299*x > 599):
-                        self.body[y,x] = 1
-
-                    if ((x<111) & (y+5.4*x < 599)):
-                        self.body[y,x] = 1
 
             # Put the buoys on the field:
             for buoy in buoys:
                 self.body[buoy.y:min(buoy.y+buoy.height,self.height),buoy.x:min(buoy.x+buoy.width, self.width)] = buoy.symbol
 
-            #print('things are happening')
-            #print(boat.x, boat.y)
             # Put the player on the field:
-            #for boat in boats:
             #check for collision of front tip:
             if (self.body[int(boat.y), int(boat.x)] != 0):
                 self.collisions += 1
             #place the front tip of the boat:
             #print('a')
-            print(boat.bearing)
             self.body[int(boat.y), int(boat.x)] = boat.tipsymbol
-            
+
             #paint rest of boat:
                 #to further refine later: project two lines at angle to guide tip shape, and don't paint the pixel if it's outside that boundary
                 #this will allow the first step (tapered width) to be skipped also
@@ -71,88 +69,54 @@ class Field:
                 #do custom boat vertical to override bug
                 for n in range(int(-boat.width/2), int(boat.width/2)):
                     for y in range(1, boat.length):
-                        if (self.body[boat.y+y, n + boat.x] != 0): 
+                        if (self.body[int(boat.y+y), int(n + boat.x)] != 0 and self.body[int(boat.y+y), int(n + boat.x)] < 20):
                             self.collisions += 1
-                        self.body[boat.y+y, n+boat.x] = boat.symbol
+                        self.body[int(boat.y+y), int(n+boat.x)] = boat.symbol
 
             elif (boat.bearing > 170 and boat.bearing < 190):
                 #do custom vertical boat to override bug
                 for n in range(int(-boat.width/2), int(boat.width/2)):
                     for y in range(1, boat.length):
-                        if (self.body[boat.y-y, n + boat.x] != 0): 
+                        if (self.body[int(boat.y-y), int(n + boat.x)] != 0 and self.body[int(boat.y-y), int(n + boat.x)] < 20):
                             self.collisions += 1
-                        self.body[boat.y-y, n+boat.x] = boat.symbol
+                        self.body[int(boat.y-y), int(n+boat.x)] = boat.symbol
 
             elif (boat.bearing > 180):
-                #print('bbbb')
                 m = 1/(-sind(boat.bearing) / cosd(boat.bearing))
                 for n in range(int(-boat.width/2), int(boat.width/2)):
                     if (n >= boat.width-1 and n <= boat.width+1):
                         x=1
                         y=m*x + n
-                        if (self.body[int(y)+boat.y,x+boat.x] == 0): 
-                            self.body[int(y)+boat.y,x+boat.x] = boat.symbol
-                        else: self.collisions += 1
+                        if (self.body[int(int(y)+boat.y),int(x+boat.x)] != 0 and self.body[int(int(y)+boat.y),int(x+boat.x)] < 20):
+                            self.collisions += 1
+                        self.body[int(int(y)+boat.y),int(x+boat.x)] = boat.symbol
+
                     for x in range (2,boat.length):
                         y=m*x + n
                         if (np.sqrt(int(y)**2 + x**2) <= (boat.length)):
-                            if (self.body[int(y)+boat.y,x+boat.x] == 0): 
-                                self.body[int(y)+boat.y,x+boat.x] = boat.symbol
-                            else: self.collisions += 1
+                            if (self.body[int(int(y)+boat.y),int(x+boat.x)] != 0 and self.body[int(int(y)+boat.y),int(x+boat.x)] < 20):
+                                self.collisions += 1
+                            self.body[int(int(y)+boat.y),int(x+boat.x)] = boat.symbol
+
             else:
                 m = 1/(sind(boat.bearing) / cosd(boat.bearing))
                 for n in range(int(-boat.width/2), int(boat.width/2)):
                     if (n >= boat.width-1 and n <= boat.width+1):
                         x=1
                         y=m*x + n
-                        if (self.body[int(y)+boat.y,-x+boat.x] != 0): 
+                        if (self.body[int(int(y)+boat.y),int(-x+boat.x)] != 0 and self.body[int(int(y)+boat.y),int(-x+boat.x)] < 20):
                             self.collisions += 1
-                        self.body[int(y)+boat.y,-x+boat.x] = boat.symbol
+                        self.body[int(int(y)+boat.y),int(-x+boat.x)] = boat.symbol
                     for x in range (2,boat.length):
                         y=m*x + n
                         if (np.sqrt(int(y)**2 + (x)**2) <= (boat.length)):
-                            if (self.body[int(y)+boat.y,-x+boat.x] != 0): 
+                            if (self.body[int(int(y)+boat.y),int(-x+boat.x)] != 0 and self.body[int(int(y)+boat.y),int(-x+boat.x)] < 20):
                                 self.collisions += 1
-                            self.body[int(y)+boat.y,-x+boat.x] = boat.symbol
-            #print("boat flag")
-
-            if (False):
-                    if ((boat.bearing > 90) & (boat.bearing < 270)):
-                        print('a')
-                        #facing in positive x direction, so paint boat in negative x direction
-                        for x in range(int(boat.x + (boat.length*cosd(boat.bearing))), boat.x):
-                            if (boat.bearing < 180):
-                                for y in range(boat.y+1, int(boat.y - boat.width*sind(boat.bearing))):  #recall that y-coords are inverted
-                                    #check for collisions or out of bounds
-                                    if (self.body[y,x] != 0): self.collisions += 1
-                                    self.body[y,x] = boat.symbol
-                            else:
-                                print('f')
-                                print(range(boat.y+1, int(boat.y - boat.width*sind(boat.bearing))))
-                                for y in range(boat.y+1, int(boat.y - boat.width*sind(boat.bearing))):  #recall that y-coords are inverted
-                                    #check for collisions or out of bounds
-                                    if (self.body[y,x] != 0): self.collisions += 1
-                                    self.body[y,x] = boat.symbol
-
-                    else:
-                        print('d')
-                        for x in range(boat.x+1, int(boat.x + (boat.length*cosd(boat.bearing)))):
-                            if (boat.bearing < 180):
-                                for y in range(boat.y+1, int(boat.y - boat.width*sind(boat.bearing))):  #recall that y-coords are inverted
-                                    #check for collisions or out of bounds
-                                    if (self.body[y,x] != 0): self.collisions += 1
-                                    self.body[y,x] = boat.symbol
-                            else:
-                                print('f')
-                                for y in range(boat.y+1, int(boat.y - boat.width*sind(boat.bearing))):  #recall that y-coords are inverted
-                                    #check for collisions or out of bounds
-                                    if (self.body[y,x] != 0): self.collisions += 1
-                                    self.body[y,x] = boat.symbol
-
+                            self.body[int(int(y)+boat.y),int(-x+boat.x)] = boat.symbol
         except :
             pass
 
-class Buoy:        
+class Buoy:
     def __init__(self, y = 0, x = 0, symbol = -1, sideways = False):
         self.y            = y
         self.x            = x
@@ -176,9 +140,12 @@ class Boat:
         self.movementLog = [[y,x,bearing]]
 
     def frame_update(self, steering_change, speed_change):
+        #attenuate from friction
+        self.speed *= 0.85
+
         #propogate speed and direction changes from previous frame inputs
-        self.x += self.speed * cosd(self.bearing)
-        self.y += self.speed * sind(self.bearing)
+        self.x += self.speed * cosd(self.bearing-90)
+        self.y += self.speed * sind(self.bearing-90)
 
         #assign steering direction change and speed change, will take effect next frame
         self.bearing +=steering_change
@@ -192,7 +159,6 @@ class Boat:
 
         #update movement log
         self.movementLog = np.append(self.movementLog, [[self.y,self.x,self.bearing]], axis=0)
-        print(self.movementLog)
 
 ######################################################################################
 class Environment:
@@ -203,14 +169,14 @@ class Environment:
     WIDTH_MUL     = 1 # Width Multiplier (used to draw np.array as blocks in pygame )
     WINDOW_HEIGHT = (F_HEIGHT+1) * HEIGHT_MUL # Height of the pygame window
     WINDOW_WIDTH  = (WIDTH) * WIDTH_MUL       # Widh of the pygame window
-    
+
     ENVIRONMENT_SHAPE = (F_HEIGHT,WIDTH,1)
     ACTION_SPACE      = [0,1,2,3,4]
     ACTION_SPACE_SIZE = len(ACTION_SPACE)
     PUNISHMENT        = -100  # Punishment increment
     REWARD            = 10    # Reward increment
     score             = 0     # Initial Score
-    
+
     MOVE_PLAYER_EVERY = 1     # Every how many frames the player moves.
     frames_counter    = 0
     vessel = Boat
@@ -223,7 +189,7 @@ class Environment:
         self.ORANGE = (255,123,0)
         self.BLUE       = (0,0, 255)
         self.GREEN = (80,255,80)
-        self.BOAT_COLOR = (28, 4, 24)
+        self.BOAT_COLOR = (186, 0, 177)
         self.BOATTIP_COLOR = (245, 0, 208)
         self.OCEAN_COLOR = (86, 141, 163)
         self.YELLOW = (255, 255, 80)
@@ -232,16 +198,17 @@ class Environment:
         self.OOBCOLOR = (14, 36, 56)
         self.field = self.buoys_list = self.boats_list = None
         self.current_state = self.reset()
-        self.val2color  = {0:self.OCEAN_COLOR, 1:self.OOBCOLOR, 2:self.YELLOW, 3:self.BLUE, 4:self.GRAY, 5:self.RED, 6:self.GREEN, 
-                           7:self.BLUE, 8:self.ORANGE, 9:self.MAGENTA, 10:self.YELLOW, 11:self.WHITE, 12:self.BLACK, 
+        self.val2color  = {0:self.OCEAN_COLOR, 1:self.OOBCOLOR, 2:self.YELLOW, 3:self.BLUE, 4:self.GRAY, 5:self.RED, 6:self.GREEN,
+                           7:self.BLUE, 8:self.ORANGE, 9:self.MAGENTA, 10:self.YELLOW, 11:self.WHITE, 12:self.BLACK,
                            13:self.BLUE, 20:self.BOAT_COLOR, 21:self.BOATTIP_COLOR}
         self.vessel = Boat(348, 735, 200)
     def reset(self):
         self.score          = 0
         self.frames_counter = 0
         self.game_over      = False
-                
+
         self.field = Field()
+        self.field.store_background()
 
         outer_boundary_1 = Buoy(0,111, 2)
         outer_boundary_2 = Buoy(599,0,2, True)
@@ -289,7 +256,7 @@ class Environment:
 
         search_rescue = Buoy(165, 578, 13)
 
-        self.buoys_list = [outer_boundary_1, outer_boundary_2, outer_boundary_3, outer_boundary_4, start_boundary, finish_boundary, 
+        self.buoys_list = [outer_boundary_1, outer_boundary_2, outer_boundary_3, outer_boundary_4, start_boundary, finish_boundary,
                     depth_marker_boundary_1, depth_marker_boundary_2, depth_marker_boundary_3, depth_marker_boundary_4,
                     gateA_green, gateA_red, gateB_green, gateB_red, gateB_green, gateC_red, gateC_green, gateD_green, gateD_red,
                     slalom_red_01, slalom_green_02, slalom_red_03, slalom_green_04, slalom_red_05,
@@ -297,18 +264,17 @@ class Environment:
                     colorpick_blue, colorpick_orange, colorpick_magenta, colorpick_yellow,
                     sensorDep_zebra, shoreDep_black, search_rescue]
 
-        #self.boats_list = [self.vessel]
         self.vessel = Boat(348, 735, 200)
 
         self.field.update_field(self.buoys_list, self.vessel)
-        
+
         observation = self.field.body
         return observation
     def print_text(self, WINDOW = None, text_cords = (0,0), center = False,
                    text = "", color = (0,0,0), size = 32):
         pygame.init()
-        font = pygame.font.Font('freesansbold.ttf', size) 
-        text_to_print = font.render(text, True, color) 
+        font = pygame.font.Font('freesansbold.ttf', size)
+        text_to_print = font.render(text, True, color)
         textRect = text_to_print.get_rect()
         if center:
             textRect.center = text_cords
@@ -316,7 +282,7 @@ class Environment:
             textRect.x = text_cords[0]
             textRect.y = text_cords[1]
         WINDOW.blit(text_to_print, textRect)
-        
+
     def step(self, speed_action, angle_action):
         global score_increased
 
@@ -326,40 +292,28 @@ class Environment:
 
         self.vessel.frame_update(angle_action, speed_action)
 
-        #print('eee')
-        #plt.imshow(self.field.body, interpolation='nearest')
-        #plt.show()
-
         # Update the field :
         self.field.update_field(self.buoys_list, self.vessel)
-
-        #print('f')
-        #plt.imshow(self.field.body, interpolation='nearest')
-        #plt.show()
 
         if self.score >= winning_score:
             self.game_over = True
 
         # If good thing occured increase the reward +1 #######################disabled for now
-        if (False):    
+        if (False):
             reward += self.REWARD
             self.score  += self.REWARD
-            
+
             # score_increased : a flag
             score_increased = True
 
             score_increased = False
 
-        
+
         # Return New Observation , reward
         #return self.field.body, reward
-    
+
 
     def render(self, WINDOW = None, human=False):
-
-        #print('a')
-        #plt.imshow(self.field.body, interpolation='nearest')
-        #plt.show()
 
         if human:
             ################ Check Actions #####################
@@ -369,21 +323,18 @@ class Environment:
             for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
-                        action_direction = -20
+                        action_direction = -30
                     if event.key == pygame.K_RIGHT:
-                        action_direction = 20
+                        action_direction = 30
                     if event.key == pygame.K_UP:
-                        action_speed = 10
+                        action_speed = 5
                     if event.key == pygame.K_DOWN:
-                        action_speed = -10
+                        action_speed = -5
                     if event.key == pygame.K_q:
                         self.game_over = True
-            ################## Step ############################            
+                        break
+            ################## Step ############################
         self.step(action_speed, action_direction)
-
-        #print('b')
-        #plt.imshow(self.field.body, interpolation='nearest')
-        #plt.show()
 
         ################ Draw Environment ###################
         WINDOW.fill(self.WHITE)
@@ -395,11 +346,9 @@ class Environment:
 
         self.print_text(WINDOW = WINDOW, text_cords = (self.WINDOW_WIDTH // 2, int(self.WINDOW_HEIGHT*0.1)),
                        text = str(self.score), color = self.RED, center = True)
-        
-        #print('c')
-        #plt.imshow(self.field.body, interpolation='nearest')
-        #plt.show()
-        
+        self.print_text(WINDOW = WINDOW, text_cords = (0, int(self.WINDOW_HEIGHT*0.9)),
+                       text = str(self.field.collisions), color = self.RED)
+
         pygame.display.update()
 ####################################################################################
 
@@ -453,7 +402,7 @@ if (debug_nogame):
 
     search_rescue = Buoy(165, 578, 13)
 
-    buoys_list = [outer_boundary_1, outer_boundary_2, outer_boundary_3, outer_boundary_4, start_boundary, finish_boundary, 
+    buoys_list = [outer_boundary_1, outer_boundary_2, outer_boundary_3, outer_boundary_4, start_boundary, finish_boundary,
                 depth_marker_boundary_1, depth_marker_boundary_2, depth_marker_boundary_3, depth_marker_boundary_4,
                 gateA_green, gateA_red, gateB_green, gateB_red, gateB_green, gateC_red, gateC_green, gateD_green, gateD_red,
                 slalom_red_01, slalom_green_02, slalom_red_03, slalom_green_04, slalom_red_05,
@@ -464,9 +413,7 @@ if (debug_nogame):
     a.update_field(buoys_list, [])
 
     vessel = Boat(348, 735, 200)
-    boats_list = [vessel]
-#####################change these
-    a.update_field(buoys_list, boats_list)
+    a.update_field(buoys_list, vessel)
     print("collisions = %d", a.collisions)
 
     np.savetxt("currentwater.txt", a.body, fmt="%d")
@@ -480,19 +427,19 @@ else:
     # Change wall speed to 3 (one step every 3 frames)
     env.WALL_SPEED = 3
 
-    # Initialize some variables 
+    # Initialize some variables
     WINDOW          = pygame.display.set_mode((env.WINDOW_WIDTH, env.WINDOW_HEIGHT))
     clock           = pygame.time.Clock()
     win             = False
-    winning_score   = 20
+    winning_score   = 100
     framecounter = 0
 
-    # Repeaat the game untill the player win (got a score of winning_score) or quits the game.
+    # Repeat the game untill the player win (got a score of winning_score) or quits the game.
     game_over       = False
     _ = env.reset()
     pygame.display.set_caption("Game")
     while not game_over:
-            clock.tick(27)
+            clock.tick(2)
             framecounter += 1
             env.render(WINDOW = WINDOW, human=True)
             game_over = env.game_over
@@ -509,6 +456,5 @@ else:
         env.print_text(WINDOW = WINDOW, text_cords = (env.WINDOW_WIDTH // 2, env.WINDOW_HEIGHT// 2),
                         text = f"Game Over - Score : {env.score}", color = env.RED, center = True)
         np.savetxt("movements.txt", env.vessel.movementLog , fmt="%f")
-
-    time.sleep(5)
     pygame.display.update()
+    time.sleep(5)
