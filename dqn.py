@@ -300,13 +300,16 @@ class Environment:
 
         # If good thing occured increase the reward +1 #######################disabled for now
         if (False):
-            reward += self.REWARD
-            self.score  += self.REWARD
+            if (reward_condition):
+                reward += self.REWARD * occurances
+                self.score  += self.REWARD * occurances
 
-            # score_increased : a flag
-            score_increased = True
+            #deduct points for collisions
+            reward -= self.field.collisions * self.REWARD
 
-            score_increased = False
+            # score_changed : a flag
+            score_changed = True
+            score_changed = False
 
 
         # Return New Observation , reward
