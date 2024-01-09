@@ -460,4 +460,4 @@ else:
                         text = f"Game Over - Score : {env.score}", color = env.RED, center = True)
         np.savetxt("movements.txt", env.vessel.movementLog , fmt="%f")
     pygame.display.update()
-    time.sleep(5)
+    time.sleep(3)
