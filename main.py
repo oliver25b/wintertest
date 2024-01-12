@@ -4,6 +4,7 @@ import pygame
 import time
 
 debug_nogame = False
+debug_displaygraph = False
 
 def cosd(x):
     return np.cos(np.deg2rad(x))
@@ -297,6 +298,10 @@ class Environment:
 
         if self.score >= winning_score:
             self.game_over = True
+
+        if (debug_displaygraph):
+            plt.imshow(a.body, interpolation='nearest')
+            plt.show()
 
         # If good thing occured increase the reward +1 #######################disabled for now
         if (False):
