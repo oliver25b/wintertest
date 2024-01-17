@@ -161,6 +161,21 @@ class Boat:
         #update movement log
         self.movementLog = np.append(self.movementLog, [[self.y,self.x,self.bearing]], axis=0)
 
+class Coin:
+    x = 0
+    y = 0
+    collected = False
+    multiplier = 1
+
+    def __init__(self, x_set, y_set, mult):
+        x = x_set
+        y = y_set
+        multiplier = mult
+        collected = False
+
+    def collect(self):
+        collected = True
+
 ######################################################################################
 class Environment:
     F_HEIGHT      = 867 # Height of the field
